@@ -46,6 +46,36 @@ class ConfigRAMStorage(ABCConfig):
     @abc.abstractmethod
     def URL(self):
         raise NotImplementedError()
+    
+class APIService(ABCConfig):
+    
+    PREFIX = "BACKEND_API"
+    
+    @property
+    def HOST(self):
+        return self.from_env("HOST")
+    
+    @property
+    def PORT(self):
+        return self.from_env("PORT")
+    
+    @property
+    def PROTOCOL(self):
+        return self.from_env("PROTOCOL")
+    
+    @property
+    def DEFAULT_PATH(self):
+        return self.from_env("DEFAULT_PATH")
+    
+    @property
+    def URL(self):
+        return "{}://{}:{}/{}/".format(
+            self.PROTOCOL, 
+            self.HOST, 
+            self.PORT,
+            self.DEFAULT_PATH
+        )
+    
 
 class ConfigRedis(ConfigRAMStorage):
     PREFIX = "REDIS"
@@ -60,3 +90,5 @@ class ConfigRedis(ConfigRAMStorage):
 
 redis_config = ConfigRedis()
 telegram_config = ConfigTelegram()
+
+api_service = APIService()
