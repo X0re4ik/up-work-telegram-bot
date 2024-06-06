@@ -2,7 +2,7 @@ import asyncio
 import logging
 import sys
 
-from src.configs import BOT
+from src.bot import BOT
 from src.handles import dp
 
 

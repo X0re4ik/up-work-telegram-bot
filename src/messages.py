@@ -102,7 +102,6 @@ MESSAGE["GET_ACCOUNT"] = """
 <b>UID организации</b>: <code>{}</code>
 <b>UID пользователя</b>: <code>{}</code>
 <b>Секретный токен</b>: <code>{}</code>
-<b>Статус</b>: <code>{}</code>
-<b>Запрос</b>: <code>{}</code>
+<b>Запросы</b>: \n{}
 """
 

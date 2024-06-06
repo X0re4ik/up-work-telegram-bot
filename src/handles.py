@@ -1,6 +1,5 @@
 
-from functools import wraps
-from typing import Optional, Type
+import aiogram.utils.markdown as fmt
 
 from aiogram import Dispatcher
 from aiogram.filters import Command
@@ -12,8 +11,8 @@ from aiogram.types import Message
 from config.configs import redis_config
 
 from .messages import COMMANDS, MESSAGE
-from .services import UserAccount, telegram_user_service
-from .utils import is_authorized
+from .services import telegram_user_service
+from .utils import is_authorized, error_handler
 
 
 class RegistrationState(StatesGroup):
@@ -37,6 +36,7 @@ default_parse_mode = "HTML"
 
 
 @dp.message(Command(COMMANDS["HELP"]))
+@error_handler
 async def command_help(message: Message) -> None:
     await message.answer(
         text=MESSAGE["HELP"],
@@ -44,6 +44,7 @@ async def command_help(message: Message) -> None:
     )
 
 @dp.message(Command(COMMANDS["START"]))
+@error_handler
 async def command_start(message: Message) -> None:
     await message.answer(
         text=MESSAGE["HELP"],
@@ -52,6 +53,7 @@ async def command_start(message: Message) -> None:
 
 
 @dp.message(Command(COMMANDS["GET"]))
+@error_handler
 @is_authorized
 async def command_get(message: Message) -> None:
     
@@ -65,8 +67,14 @@ async def command_get(message: Message) -> None:
             user_account.org_uid,
             user_account.user_uid,
             user_account.security_token,
-            user_account.status,
-            user_account.question,
+            "".join(
+                list(
+                    map(
+                        lambda item: f"{str(item[0]+1)}. <code>{item[1]}</code>\n",
+                        enumerate(user_account.questions)
+                    )
+                )
+            ),
         ),
         parse_mode=default_parse_mode
     )
@@ -74,6 +82,7 @@ async def command_get(message: Message) -> None:
 
 
 @dp.message(Command(COMMANDS["CREATE_ACCOUNT"]))
+@error_handler
 async def command_start_create_account(message: Message, state: FSMContext) -> None:
     telegram_id = message.from_user.id
     user = await telegram_user_service.get_account(telegram_id)
@@ -92,6 +101,7 @@ async def command_start_create_account(message: Message, state: FSMContext) -> N
 
 
 @dp.message(Command(COMMANDS["DELETE_ACCOUNT"]))
+@error_handler
 @is_authorized
 async def command_delete_account(message: Message) -> None:
     await telegram_user_service.delete_account(message.from_user.id)
@@ -102,15 +112,32 @@ async def command_delete_account(message: Message) -> None:
 
 
 @dp.message(Command(COMMANDS["SET_QUERY"]))
+@error_handler
 @is_authorized
 async def command_set_query(message: Message, state: FSMContext) -> None:
+    telegram_id = message.from_user.id
+    numbers_of_questions = await telegram_user_service.get_quantity_questions(telegram_id)
+    free_request = numbers_of_questions.free
     await message.answer(
-        MESSAGE["SET_QUERY"],
+        "Осталось {free_request} запросов",
         parse_mode=default_parse_mode
     )
-    await state.set_state(QuestionState.START_WORKED)
+    if free_request > 0:
+        await message.answer(
+            MESSAGE["SET_QUERY"],
+            parse_mode=default_parse_mode
+        )
+        return await state.set_state(QuestionState.START_WORKED)
+    
+    await message.answer(
+        "Лимит на запросы исчерпан",
+        parse_mode=default_parse_mode
+    )
+    return await state.set_state(None)
+    
 
 @dp.message(Command(COMMANDS["RESET"]))
+@error_handler
 async def command_help(message: Message, state: FSMContext) -> None:
     await state.clear()
     await state.set_state(None)
@@ -122,18 +149,33 @@ async def command_help(message: Message, state: FSMContext) -> None:
 
 
 @dp.message(QuestionState.START_WORKED)
+@error_handler
 @is_authorized
 async def command_start_worker(message: Message, state: FSMContext) -> None:
-    text = message.text
-    question = await telegram_user_service.add_question(message.from_user.id, text)
-    await message.answer(
-        text=f"Запросы: {str(question)}",
+    telegram_id = message.from_user.id
+    
+    questions = await telegram_user_service.add_question(telegram_id, message.text)
+    
+    msg = "".join(
+        list(
+            map(
+                lambda question: f"<code>{question}</code>\n",
+                questions
+            )
+        )
     )
+    
+    await message.answer(
+        text=msg,
+        parse_mode=default_parse_mode
+    )
+    
     await state.set_state(None)
     
 
 
 @dp.message(RegistrationState.START_WORKED)
+@error_handler
 async def command_start_worked(message: Message, state: FSMContext) -> None:
     await state.update_data({"securityToken": message.text.strip()})
     await message.answer(
@@ -144,6 +186,7 @@ async def command_start_worked(message: Message, state: FSMContext) -> None:
 
 
 @dp.message(RegistrationState.ENTERED_SECURITY_TOKEN)
+@error_handler
 async def command_entered_security_token(message: Message, state: FSMContext) -> None:
     await state.update_data({ "orgUid": message.text.strip() })    
     await message.answer(
@@ -153,6 +196,7 @@ async def command_entered_security_token(message: Message, state: FSMContext) ->
     await state.set_state(RegistrationState.ENTERED_USER_UID)    
 
 @dp.message(RegistrationState.ENTERED_USER_UID)
+@error_handler
 async def command_entered_user_uid(message: Message, state: FSMContext) -> None:
     await state.update_data({ "userUid": message.text.strip() })
     data = await state.get_data()
@@ -173,6 +217,7 @@ async def command_entered_user_uid(message: Message, state: FSMContext) -> None:
     
 
 @dp.message(Command(COMMANDS["RESET_QUERY"]))
+@error_handler
 @is_authorized
 async def command_reset_query(message: Message) -> None:
     await telegram_user_service.delete_all_questions(message.from_user.id)

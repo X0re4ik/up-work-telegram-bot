@@ -1,72 +1,27 @@
 
+import aiohttp
 
-from typing import Dict, List, Optional
+from typing import List
 from urllib.error import HTTPError
 
-import aiohttp
-from pydantic import BaseModel
+from config.configs import api_service
 
+from .schemes import (
+    UserAccount,
+    UserUpdate,
+    AccountTelegramCreate,
+    AccountTelegramCreate,
+    NumberQuestions,
+)
 
-class UserAccount(BaseModel):
-    telegram_id: int
-    security_token: str
-    user_uid: str
-    org_uid: str
-    questions: List[str]
-    
-    @classmethod
-    def from_json(cls, data):
-        return cls(
-            telegram_id=data["telegram_id"],
-            security_token=data["security_token"],
-            user_uid=data["user_uid"],
-            org_uid=data["org_uid"],
-            questions=list(
-                map(
-                    lambda question_obj: question_obj["question"],
-                    data["questions"]
-                )
-            )
-        )
-
-
-class UserUpdate(BaseModel):
-    security_token: Optional[str] = None
-    user_uid: Optional[str] = None
-    org_uid: Optional[str] = None
-    
-
-class QuestionGetModel(BaseModel):
-    user_id: int
-    question: str
-    
-    @classmethod
-    def from_json(cls, data):
-        return cls(
-            user_id=data["user_id"],
-            question=data["question"]
-        )
-
-
-class AccountTelegramCreate(BaseModel):
-    telegram_id: int
-    security_token: str
-    user_uid: str
-    org_uid: str
-
-class ErrorModel(BaseModel):
-    code: int
-    description: str = ""
 
 class BackendUserService:
     
-    def __init__(self, base_url: str, default_path = 'api/v1') -> None:
+    def __init__(self, base_url: str) -> None:
         self.base_url = base_url
-        self.default_path = default_path
         
-        self.default_full_path = self.base_url + "/" + self.default_path
-        self.base_question_url = self.default_full_path + "/question"
-        self.base_account_url = self.default_full_path + "/account"
+        self.base_question_url = self.base_url + "question"
+        self.base_account_url = self.base_url + "account"
 
 
     async def is_valid(self, telegram_id: int):
@@ -116,16 +71,20 @@ class BackendUserService:
     async def delete_all_questions(self, telegram_id: int):
         url = self.base_question_url + f"/{telegram_id}/"
         return await self._run_http_method(url, "delete", 204)
-
+    
+    async def get_quantity_questions(self, telegram_id: int):
+        url = self.base_question_url + f"/{telegram_id}/qty/"
+        return await self._run_http_method(url, "get", 200)
 
     async def _run_http_method(self, url, method, expected_code: int = 200, *args, **kwargs):
         async with aiohttp.ClientSession() as session:
             async with getattr(session, method)(url, ssl=False, *args, **kwargs) as response:
-                if response.status != expected_code: 
+                if response.status != expected_code:
+                    detail = (await response.json())["detail"] 
                     raise HTTPError(
                         url=url,
                         code=response.status, 
-                        msg=f"{response.status} != {expected_code}",
+                        msg=f"Detail: {detail}",
                         hdrs=response.headers,
                         fp=None
                     )
@@ -134,7 +93,7 @@ class BackendUserService:
                 return await response.json()
 
 
-api_service = BackendUserService("http://localhost:8000")
+api_service = BackendUserService(api_service.URL)
             
 
 class TelegramUserService:
@@ -162,7 +121,6 @@ class TelegramUserService:
     async def get_account(self, telegram_id: int):
         try:
             data = await self.api_service.get_account(telegram_id)
-            print(data)
             return UserAccount.from_json(data)
         except HTTPError as e:
             return None
@@ -203,6 +161,13 @@ class TelegramUserService:
     async def delete_all_questions(self, telegram_id: int):
         data = await self.api_service.delete_all_questions(telegram_id)
         return data
+    
+    
+    async def get_quantity_questions(self, telegram_id: int):
+        data = await self.api_service.get_quantity_questions(telegram_id)
+        return NumberQuestions(
+            **data
+        )
     
 telegram_user_service = TelegramUserService(
     api_service=api_service

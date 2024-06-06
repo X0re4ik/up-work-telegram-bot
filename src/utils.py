@@ -20,3 +20,18 @@ def is_authorized(function):
             )
         return await function(*args, **kwargs)
     return wrapper
+
+
+
+def error_handler(function):
+    @wraps(function)
+    async def wrapper(*args, **kwargs):
+        message: Message = args[0]
+        try:
+            return await function(*args, **kwargs)
+        except Exception as e:
+            return await message.answer(
+                str(e)
+            )
+    return wrapper
+    
