@@ -8,9 +8,12 @@ attrs==23.2.0
 certifi==2024.6.2
 frozenlist==1.4.1
 idna==3.7
+isort==5.13.2
 magic-filter==1.0.12
 multidict==6.0.5
 pydantic==2.7.3
 pydantic_core==2.18.4
+python-dotenv==1.0.1
+redis==5.0.4
 typing_extensions==4.12.1
 yarl==1.9.4
