@@ -155,8 +155,10 @@ class TelegramUserService:
         return await self.get_questions(telegram_id)
     
     async def delete_questions(self, telegram_id: int, question: str):
-        data = await self.api_service.delete_questions(telegram_id, question)
-        return data
+        is_exist = await self.question_is_exists(telegram_id, question)
+        if is_exist:
+            await self.api_service.delete_questions(telegram_id, question)
+        return is_exist
     
     async def delete_all_questions(self, telegram_id: int):
         data = await self.api_service.delete_all_questions(telegram_id)
@@ -168,6 +170,10 @@ class TelegramUserService:
         return NumberQuestions(
             **data
         )
+        
+    async def question_is_exists(self, telegram_id: int, question: str):
+        questions = await self.get_questions(telegram_id)
+        return question in questions
     
 telegram_user_service = TelegramUserService(
     api_service=api_service
