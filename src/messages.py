@@ -7,7 +7,8 @@ COMMANDS ={
     "CREATE_ACCOUNT": "create_account",
     "DELETE_ACCOUNT": "delete_account",
     "SET_QUERY": "set_query",
-    "RESET_QUERY": "reset_query",
+    "DELETE_QUERY": "delete_query",
+    "RESET_QUERIES": "reset_query",
     "RESET": "reset", 
 }
 
@@ -17,22 +18,14 @@ COMMANDS_DESCRIPTIONS = {
     "GET": "Получить текущие аккаунт",
     "CREATE_ACCOUNT": "Создать аккаунт",
     "DELETE_ACCOUNT": "Удалить аккааунт",
-    "SET_QUERY": "установить запрос",
-    "RESET_QUERY": "Сбросить запрос",
+    "SET_QUERY": "Установить запрос",
+    "DELETE_QUERY": "Удалить запрос",
+    "RESET_QUERIES": "Сбросить все запросы",
     "RESET": "Сбросить КЭШ", 
 }
 
 if set(COMMANDS.keys()) != set(COMMANDS_DESCRIPTIONS.keys()):
     raise RuntimeError("The list of COMMANDS_DESCRIPTIONS must match the COMMANDS set")
-
-
-KEYBOARDS = {
-    "AND": "Все проекты из категрии (AND)",
-    "NOT": "Ни один проект из категории (NOT)",
-    "OR": "Любой проект из категории (OR)",
-    "SAVE": "Save",
-    "RESET": "Reset"
-}
 
 
 MESSAGE = {}
@@ -66,7 +59,7 @@ MESSAGE["INPUT_USER_UID"] = f"""
 """
 
 MESSAGE["USER_SUCCESS_REGISTERED"] = f"""
-Процесс регистрации успешно завершен.
+<b>Процесс регистрации успешно завершен 😎</b>
 Установите запрос для рассылки: /{COMMANDS["SET_QUERY"]}
 """
 
@@ -75,8 +68,8 @@ MESSAGE["RESET_QUERY"] = f"""
 """
 
 MESSAGE["SET_QUERY"] = f"""
-Реализуйте запрос. Рекомендуем в слелдующем формате:
-<code>(Python OR Django) AND (C# AND Unity) OR (C++ AND WebRTC)</code>
+<b>Напишите запрос</b>
+Пример: <code>(Python OR Django) AND (C++ AND WebRTC)</code>
 """
 
 
@@ -95,7 +88,15 @@ MESSAGE["CANCEL"] = f"""
 """
 
 
+MESSAGE["NUMBER_QUESTION"] = """
+<b>Осталось запросов 🤔: {}</b>""" + f"""
+    /{COMMANDS["RESET_QUERIES"]} - удалить все
+    /{COMMANDS["DELETE_QUERY"]} - удалить конкретный
+"""
 
+MESSAGE["INPUT_DELETE_QUERY"] = """
+Выберете запрос, который бы вы хотели удалить
+"""
 
 MESSAGE["GET_ACCOUNT"] = """
 <b>Telegram ID</b>: <code>{}</code>
@@ -105,3 +106,17 @@ MESSAGE["GET_ACCOUNT"] = """
 <b>Запросы</b>: \n{}
 """
 
+
+MESSAGE["INPUT_ERROR"] = """
+<b>Простите, я вас не понял  😵‍💫</b>
+"""
+
+MESSAGE["SUCCESS_DELETE"] = """
+Запрос <code>{}</code> успешно удален
+"""
+
+
+MESSAGE["QUERIES"] = """
+<b>Актуальные запросы:</b> 
+{}
+<b>Создать новый запрос</b>""" + f""" (/{COMMANDS["SET_QUERY"]})"""
