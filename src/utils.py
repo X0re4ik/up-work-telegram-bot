@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import Optional
+from typing import Optional, List
 
 from aiogram.types import Message
 
@@ -31,7 +31,19 @@ def error_handler(function):
             return await function(*args, **kwargs)
         except Exception as e:
             return await message.answer(
-                str(e)
+                MESSAGE["INPUT_ERROR"],
+                parse_mode="HTML",
             )
     return wrapper
-    
+
+
+
+def questions_to_html(questions: List[str]):
+    return "".join(
+        list(
+            map(
+                lambda item: f"{str(item[0]+1)}. <code>{item[1]}</code>\n",
+                enumerate(questions)
+            )
+        )
+    )
