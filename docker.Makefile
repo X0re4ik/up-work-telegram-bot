@@ -10,8 +10,8 @@ detach-up:
 
 # Forcing all containers to stop
 stop:
-	docker stop telegram_bot newsletter || true
-	docker rm telegram_bot newsletter || true
+	docker stop telegram_bot || true
+	docker rm telegram_bot || true
 
 # Delete service container images
 rmi:

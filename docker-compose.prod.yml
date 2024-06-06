@@ -22,8 +22,4 @@ services:
       REDIS_HOST: ${REDIS_HOST}
       REDIS_PORT: ${REDIS_PORT}
     depends_on:
-      - postgres
-
-volumes:
-  postgres_data:
-  pgadmin_data:
+      - redis
